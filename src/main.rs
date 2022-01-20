@@ -3,6 +3,10 @@ use rocket::figment::{
   value::{Map, Value},
 };
 use rocket::{get, launch, routes};
+use rocket_sync_db_pools::{diesel, database};
+
+#[database("my_db")]
+struct DbConn(diesel::PgConnection);
 
 #[get("/")]
 fn index() -> &'static str {
@@ -18,5 +22,5 @@ fn rocket() -> _ {
   // Add it to the config as "my_db"
   let figment = rocket::Config::figment().merge(("databases", map!["my_db" => db]));
   // Use custom config in favor of the regular `.build()`
-  rocket::custom(figment).mount("/", routes![index])
+  rocket::custom(figment).mount("/", routes![index]).attach(DbConn::fairing())
 }
