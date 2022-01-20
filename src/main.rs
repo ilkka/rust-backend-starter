@@ -1,16 +1,33 @@
+#[macro_use]
+extern crate diesel;
+
 use rocket::figment::{
   util::map,
   value::{Map, Value},
 };
 use rocket::{get, launch, routes};
-use rocket_sync_db_pools::{diesel, database};
+use rocket_sync_db_pools::{diesel as rkt_dsl, database};
+use diesel::prelude::*;
+use diesel::Queryable;
+
+mod schema;
 
 #[database("my_db")]
-struct DbConn(diesel::PgConnection);
+struct DbConn(rkt_dsl::PgConnection);
+
+#[derive(Debug, Queryable)]
+struct Greeting {
+  id: i32,
+  greeting: String
+}
 
 #[get("/")]
-fn index() -> &'static str {
-  "Hello world"
+async fn index(conn: DbConn) -> String {
+  use self::schema::greetings::dsl::*;
+  conn.run(|c| {
+    let result = greetings.load::<Greeting>(c);
+    format!("{:?}", result)
+  }).await
 }
 
 #[launch]
