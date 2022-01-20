@@ -1,3 +1,7 @@
+use rocket::figment::{
+  util::map,
+  value::{Map, Value},
+};
 use rocket::{get, launch, routes};
 
 #[get("/")]
@@ -7,5 +11,12 @@ fn index() -> &'static str {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index])
+  // Build config map for db
+  let db : Map<_, Value> = map! {
+    "url" => "postgres://postgres:postgres@localhost:5432/postgres".into()
+  };
+  // Add it to the config as "my_db"
+  let figment = rocket::Config::figment().merge(("databases", map!["my_db" => db]));
+  // Use custom config in favor of the regular `.build()`
+  rocket::custom(figment).mount("/", routes![index])
 }
