@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate diesel;
 
+// Bring schema into scope as module 'schema'
+mod schema;
+
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::insert_into;
@@ -18,8 +21,6 @@ use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use rocket_okapi::{openapi, openapi_get_routes, JsonSchema};
 use rocket_sync_db_pools::{database, diesel as rkt_dsl};
 use self::schema::greetings; // this is needed for the table_name attribute to work
-
-mod schema; // TODO: what exactly does this do?
 
 #[database("my_db")]
 struct DbConn(rkt_dsl::PgConnection);
