@@ -9,6 +9,8 @@ use rocket::figment::{
   value::{Map, Value},
 };
 use rocket::{get, launch};
+use rocket::serde::json::Json;
+use rocket::serde::{Deserialize, Serialize};
 use rocket_okapi::gen::OpenApiGenerator;
 use rocket_okapi::request::{OpenApiFromRequest, RequestHeaderInput};
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
@@ -30,7 +32,7 @@ impl<'r> OpenApiFromRequest<'r> for DbConn {
   }
 }
 
-#[derive(Debug, Queryable, JsonSchema)]
+#[derive(Debug, Queryable, JsonSchema, Serialize)]
 struct Greeting {
   id: i32,
   greeting: String,
@@ -49,6 +51,14 @@ async fn index(conn: DbConn) -> String {
     .await
 }
 
+#[openapi]
+#[get("/greetings")]
+async fn get_greetings(conn: DbConn) -> Json<Vec<Greeting>> {
+  use self::schema::greetings::dsl::*;
+
+  Json(conn.run(|c| greetings.load::<Greeting>(c).expect("boom")).await)
+}
+
 #[launch]
 fn rocket() -> _ {
   // Build config map for db
@@ -59,7 +69,7 @@ fn rocket() -> _ {
   let figment = rocket::Config::figment().merge(("databases", map!["my_db" => db]));
   // Use custom config in favor of the regular `.build()`
   rocket::custom(figment)
-    .mount("/", openapi_get_routes![index])
+    .mount("/", openapi_get_routes![index, get_greetings])
     .mount(
       "/swagger",
       make_swagger_ui(&SwaggerUIConfig {

@@ -126,6 +126,7 @@ dependencies = [
  "libc",
  "num-integer",
  "num-traits",
+ "serde",
  "time 0.1.43",
  "winapi",
 ]
@@ -1092,6 +1093,7 @@ dependencies = [
  "rocket_okapi",
  "rocket_sync_db_pools",
  "schemars",
+ "serde",
 ]
 
 [[package]]
