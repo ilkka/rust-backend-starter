@@ -4,23 +4,25 @@ extern crate diesel;
 // Bring schema into scope as module 'schema'
 mod schema;
 
+use self::schema::greetings;
 use chrono::{DateTime, Utc};
-use diesel::prelude::*;
 use diesel::insert_into;
+use diesel::prelude::*;
+use dotenv::dotenv;
 use rocket::figment::{
   util::map,
   value::{Map, Value},
 };
 use rocket::http::Status;
-use rocket::{get, post, launch};
 use rocket::serde::json::Json;
 use rocket::serde::{Deserialize, Serialize};
+use rocket::{get, launch, post};
 use rocket_okapi::gen::OpenApiGenerator;
 use rocket_okapi::request::{OpenApiFromRequest, RequestHeaderInput};
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use rocket_okapi::{openapi, openapi_get_routes, JsonSchema};
 use rocket_sync_db_pools::{database, diesel as rkt_dsl};
-use self::schema::greetings; // this is needed for the table_name attribute to work
+use std::env; // this is needed for the table_name attribute to work
 
 #[database("my_db")]
 struct DbConn(rkt_dsl::PgConnection);
@@ -31,7 +33,7 @@ impl<'r> OpenApiFromRequest<'r> for DbConn {
   fn from_request_input(
     _gen: &mut OpenApiGenerator,
     _name: String,
-    _required: bool
+    _required: bool,
   ) -> rocket_okapi::Result<RequestHeaderInput> {
     Ok(RequestHeaderInput::None)
   }
@@ -47,7 +49,7 @@ struct Greeting {
 #[derive(Deserialize, Insertable, JsonSchema)]
 #[table_name = "greetings"]
 struct NewGreeting {
-  greeting: String
+  greeting: String,
 }
 
 #[openapi]
@@ -67,25 +69,40 @@ async fn index(conn: DbConn) -> String {
 async fn get_greetings(conn: DbConn) -> Json<Vec<Greeting>> {
   use self::schema::greetings::dsl::*;
 
-  Json(conn.run(|c| greetings.load::<Greeting>(c).expect("boom")).await)
+  Json(
+    conn
+      .run(|c| greetings.load::<Greeting>(c).expect("boom"))
+      .await,
+  )
 }
 
 #[openapi]
 #[post("/greetings", data = "<value>")]
 async fn add_greeting(conn: DbConn, value: Json<NewGreeting>) -> Status {
   use self::schema::greetings::dsl::*;
-  conn.run(|c| insert_into(greetings).values(&value.into_inner()).execute(c).expect("kaboom")).await;
+  conn
+    .run(|c| {
+      insert_into(greetings)
+        .values(&value.into_inner())
+        .execute(c)
+        .expect("kaboom")
+    })
+    .await;
   rocket::http::Status::NoContent
 }
 
 #[launch]
 fn rocket() -> _ {
+  dotenv().ok();
+
   // Build config map for db
   let db: Map<_, Value> = map! {
-    "url" => "postgres://postgres:postgres@localhost:5432/postgres".into()
+    "url" => env::var("DATABASE_URL").unwrap().into()
   };
+
   // Add it to the config as "my_db"
   let figment = rocket::Config::figment().merge(("databases", map!["my_db" => db]));
+
   // Use custom config in favor of the regular `.build()`
   rocket::custom(figment)
     .mount("/", openapi_get_routes![index, get_greetings, add_greeting])
