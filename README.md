@@ -39,3 +39,5 @@ Why? Because I happened to work through this and all the bits weren't immediatel
    ```shell
    watchexec --restart cargo run
    ```
+
+6. Open up Swagger UI at http://localhost:8000/swagger
