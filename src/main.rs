@@ -22,7 +22,7 @@ use rocket_okapi::request::{OpenApiFromRequest, RequestHeaderInput};
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use rocket_okapi::{openapi, openapi_get_routes, JsonSchema};
 use rocket_sync_db_pools::{database, diesel as rkt_dsl};
-use std::env; // this is needed for the table_name attribute to work
+use std::env;
 
 #[database("my_db")]
 struct DbConn(rkt_dsl::PgConnection);
