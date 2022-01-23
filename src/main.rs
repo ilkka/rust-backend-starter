@@ -53,18 +53,6 @@ struct NewGreeting {
 }
 
 #[openapi]
-#[get("/")]
-async fn index(conn: DbConn) -> String {
-  use self::schema::greetings::dsl::*;
-  conn
-    .run(|c| {
-      let result = greetings.load::<Greeting>(c);
-      format!("{:?}", result)
-    })
-    .await
-}
-
-#[openapi]
 #[get("/greetings")]
 async fn get_greetings(conn: DbConn) -> Json<Vec<Greeting>> {
   use self::schema::greetings::dsl::*;
@@ -105,7 +93,7 @@ fn rocket() -> _ {
 
   // Use custom config in favor of the regular `.build()`
   rocket::custom(figment)
-    .mount("/", openapi_get_routes![index, get_greetings, add_greeting])
+    .mount("/", openapi_get_routes![get_greetings, add_greeting])
     .mount(
       "/swagger",
       make_swagger_ui(&SwaggerUIConfig {
