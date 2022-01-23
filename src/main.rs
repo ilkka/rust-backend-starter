@@ -16,7 +16,7 @@ use rocket::figment::{
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::serde::{Deserialize, Serialize};
-use rocket::{get, launch, post};
+use rocket::{catch, catchers, get, post, launch, Request};
 use rocket_okapi::gen::OpenApiGenerator;
 use rocket_okapi::request::{OpenApiFromRequest, RequestHeaderInput};
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
@@ -79,6 +79,20 @@ async fn add_greeting(conn: DbConn, value: Json<NewGreeting>) -> Status {
   rocket::http::Status::NoContent
 }
 
+#[derive(Serialize, JsonSchema)]
+struct ApiError {
+  statuscode: u16,
+  error: String
+}
+
+#[catch(default)]
+fn default_catcher(status: Status, _req: &Request) -> Json<ApiError> {
+  Json(ApiError {
+    statuscode: status.code,
+    error: format!("{}", status.reason().unwrap_or("Internal error"))
+  })
+}
+
 #[launch]
 fn rocket() -> _ {
   dotenv().ok();
@@ -101,5 +115,6 @@ fn rocket() -> _ {
         ..Default::default()
       }),
     )
+    .register("/", catchers![default_catcher])
     .attach(DbConn::fairing())
 }
