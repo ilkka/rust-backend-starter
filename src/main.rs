@@ -39,7 +39,7 @@ impl<'r> OpenApiFromRequest<'r> for DbConn {
   }
 }
 
-#[derive(Debug, Queryable, JsonSchema, Serialize)]
+#[derive(AsChangeset, Debug, Queryable, Identifiable, JsonSchema, Deserialize, Serialize)]
 struct Greeting {
   id: i32,
   greeting: String,
