@@ -1,0 +1,2 @@
+-- Your SQL goes here
+ALTER TABLE greetings ADD COLUMN created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
