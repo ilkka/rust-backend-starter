@@ -9,6 +9,8 @@ use rocket::figment::{
   value::{Map, Value},
 };
 use rocket::{get, launch};
+use rocket_okapi::gen::OpenApiGenerator;
+use rocket_okapi::request::{OpenApiFromRequest, RequestHeaderInput};
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use rocket_okapi::{openapi, openapi_get_routes, JsonSchema};
 use rocket_sync_db_pools::{database, diesel as rkt_dsl};
@@ -17,6 +19,16 @@ mod schema;
 
 #[database("my_db")]
 struct DbConn(rkt_dsl::PgConnection);
+
+impl<'r> OpenApiFromRequest<'r> for DbConn {
+  fn from_request_input(
+    _gen: &mut OpenApiGenerator,
+    _name: String,
+    _required: bool
+  ) -> rocket_okapi::Result<RequestHeaderInput> {
+    Ok(RequestHeaderInput::None)
+  }
+}
 
 #[derive(Debug, Queryable, JsonSchema)]
 struct Greeting {
@@ -48,9 +60,12 @@ fn rocket() -> _ {
   // Use custom config in favor of the regular `.build()`
   rocket::custom(figment)
     .mount("/", openapi_get_routes![index])
-    .mount("/swagger", make_swagger_ui(&SwaggerUIConfig {
-      url: "../openapi.json".to_string(),
-      ..Default::default()
-    }))
+    .mount(
+      "/swagger",
+      make_swagger_ui(&SwaggerUIConfig {
+        url: "../openapi.json".to_string(),
+        ..Default::default()
+      }),
+    )
     .attach(DbConn::fairing())
 }
