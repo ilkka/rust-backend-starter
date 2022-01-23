@@ -9,6 +9,7 @@ use rocket::{get, launch, routes};
 use rocket_sync_db_pools::{diesel as rkt_dsl, database};
 use diesel::prelude::*;
 use diesel::Queryable;
+use chrono::{DateTime, Utc};
 
 mod schema;
 
@@ -18,7 +19,8 @@ struct DbConn(rkt_dsl::PgConnection);
 #[derive(Debug, Queryable)]
 struct Greeting {
   id: i32,
-  greeting: String
+  greeting: String,
+  created_at: DateTime<Utc>
 }
 
 #[get("/")]
