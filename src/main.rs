@@ -3,8 +3,10 @@ extern crate diesel;
 
 // Bring schema into scope as module 'schema'
 mod schema;
+mod models {
+  pub mod greeting;
+}
 
-use self::schema::greetings;
 use chrono::{DateTime, Utc};
 use diesel::insert_into;
 use diesel::prelude::*;
@@ -39,34 +41,21 @@ impl<'r> OpenApiFromRequest<'r> for DbConn {
   }
 }
 
-#[derive(AsChangeset, Debug, Queryable, Identifiable, JsonSchema, Deserialize, Serialize)]
-struct Greeting {
-  id: i32,
-  greeting: String,
-  created_at: DateTime<Utc>,
-}
-
-#[derive(Deserialize, Insertable, JsonSchema)]
-#[table_name = "greetings"]
-struct NewGreeting {
-  greeting: String,
-}
-
 #[openapi]
 #[get("/greetings")]
-async fn get_greetings(conn: DbConn) -> Json<Vec<Greeting>> {
+async fn get_greetings(conn: DbConn) -> Json<Vec<models::greeting::Greeting>> {
   use self::schema::greetings::dsl::*;
 
   Json(
     conn
-      .run(|c| greetings.load::<Greeting>(c).expect("boom"))
+      .run(|c| greetings.load::<models::greeting::Greeting>(c).expect("boom"))
       .await,
   )
 }
 
 #[openapi]
 #[post("/greetings", data = "<value>")]
-async fn add_greeting(conn: DbConn, value: Json<NewGreeting>) -> Status {
+async fn add_greeting(conn: DbConn, value: Json<models::greeting::NewGreeting>) -> Status {
   use self::schema::greetings::dsl::*;
   conn
     .run(|c| {
