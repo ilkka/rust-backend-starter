@@ -6,9 +6,11 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ansi_term = "0.12.1"
 chrono = {version = "0.4", features = ["serde"]}
 diesel = {version = "1.4", features = ["postgres", "chrono", "uuidv07"]}
 dotenv = "0.15.0"
+fern = "0.6.0"
 flexi_logger = "0.22"
 log = "0.4"
 rocket = {version = "0.5.0-rc.1", features = ["json"]}

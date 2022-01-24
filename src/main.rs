@@ -6,10 +6,10 @@ mod schema;
 mod models {
   pub mod greeting;
 }
+mod logger;
 
 use dotenv::dotenv;
-use flexi_logger::{AdaptiveFormat, Logger};
-use log::{error, info};
+use log::{error, warn, info, debug};
 use rocket::figment::{
   util::map,
   value::{Map, Value},
@@ -90,12 +90,7 @@ fn default_catcher(status: Status, _req: &Request) -> Json<ApiError> {
 #[launch]
 fn rocket() -> _ {
   dotenv().ok();
-  Logger::try_with_env_or_str("debug")
-    .expect("Failed to read logger config")
-    .adaptive_format_for_stderr(AdaptiveFormat::Detailed)
-    .adaptive_format_for_stdout(AdaptiveFormat::Detailed)
-    .start()
-    .expect("Failed to start logger");
+  let _logger = logger::setup_logger().expect("Could not configure logger");
 
   // Build config map for db
   let db: Map<_, Value> = map! {
@@ -104,6 +99,10 @@ fn rocket() -> _ {
 
   // Add it to the config as "my_db"
   let figment = rocket::Config::figment().merge(("databases", map!["my_db" => db]));
+
+  info!("Launching");
+  debug!("Launched");
+  warn!("Whoops!");
 
   // Use custom config in favor of the regular `.build()`
   rocket::custom(figment)
