@@ -7,18 +7,17 @@ mod models {
   pub mod greeting;
 }
 
-use chrono::{DateTime, Utc};
-use diesel::insert_into;
-use diesel::prelude::*;
 use dotenv::dotenv;
+use flexi_logger::{AdaptiveFormat, Logger};
+use log::{error, info};
 use rocket::figment::{
   util::map,
   value::{Map, Value},
 };
 use rocket::http::Status;
 use rocket::serde::json::Json;
-use rocket::serde::{Deserialize, Serialize};
-use rocket::{catch, catchers, get, post, launch, Request};
+use rocket::serde::Serialize;
+use rocket::{catch, catchers, get, launch, post, Request};
 use rocket_okapi::gen::OpenApiGenerator;
 use rocket_okapi::request::{OpenApiFromRequest, RequestHeaderInput};
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
@@ -43,48 +42,60 @@ impl<'r> OpenApiFromRequest<'r> for DbConn {
 
 #[openapi]
 #[get("/greetings")]
-async fn get_greetings(conn: DbConn) -> Json<Vec<models::greeting::Greeting>> {
-  use self::schema::greetings::dsl::*;
-
-  Json(
-    conn
-      .run(|c| greetings.load::<models::greeting::Greeting>(c).expect("boom"))
-      .await,
-  )
+async fn get_greetings(conn: DbConn) -> Result<Json<Vec<models::greeting::Greeting>>, Status> {
+  conn
+    .run(|c| {
+      models::greeting::Greeting::load(c)
+        .and_then(|g| Ok(Json(g)))
+        .or_else(|e| {
+          error!("{}", e);
+          Err(Status::InternalServerError)
+        })
+    })
+    .await
 }
 
 #[openapi]
 #[post("/greetings", data = "<value>")]
-async fn add_greeting(conn: DbConn, value: Json<models::greeting::NewGreeting>) -> Status {
-  use self::schema::greetings::dsl::*;
+async fn add_greeting(
+  conn: DbConn,
+  value: Json<models::greeting::NewGreeting>,
+) -> Result<Json<models::greeting::Greeting>, Status> {
   conn
     .run(|c| {
-      insert_into(greetings)
-        .values(&value.into_inner())
-        .execute(c)
-        .expect("kaboom")
+      models::greeting::Greeting::create(value.into_inner(), c)
+        .and_then(|g| Ok(Json(g)))
+        .or_else(|e| {
+          error!("{}", e);
+          Err(Status::InternalServerError)
+        })
     })
-    .await;
-  rocket::http::Status::NoContent
+    .await
 }
 
 #[derive(Serialize, JsonSchema)]
 struct ApiError {
   statuscode: u16,
-  error: String
+  error: String,
 }
 
 #[catch(default)]
 fn default_catcher(status: Status, _req: &Request) -> Json<ApiError> {
   Json(ApiError {
     statuscode: status.code,
-    error: format!("{}", status.reason().unwrap_or("Internal error"))
+    error: format!("{}", status.reason().unwrap_or("Internal error")),
   })
 }
 
 #[launch]
 fn rocket() -> _ {
   dotenv().ok();
+  Logger::try_with_env_or_str("debug")
+    .expect("Failed to read logger config")
+    .adaptive_format_for_stderr(AdaptiveFormat::Detailed)
+    .adaptive_format_for_stdout(AdaptiveFormat::Detailed)
+    .start()
+    .expect("Failed to start logger");
 
   // Build config map for db
   let db: Map<_, Value> = map! {
