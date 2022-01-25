@@ -33,8 +33,6 @@ fn default_catcher(status: Status, _req: &Request) -> Json<ApiError> {
 fn rocket() -> _ {
   dotenv().ok();
   let _logger = logger::setup_logger().expect("Could not configure logger");
-
-  // Add it to the config as "my_db"
   let figment = rocket::Config::figment().merge(("databases", database::database_config()));
 
   // Use custom config in favor of the regular `.build()`
