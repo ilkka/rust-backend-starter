@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate diesel;
 
-// Bring schema into scope as module 'schema'
 mod database;
 mod schema;
 mod domain;
