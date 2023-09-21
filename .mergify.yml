@@ -1,6 +1,7 @@
 queue_rules:
-  merge_method: squash
-        
+  - name: default
+    merge_method: squash
+
 pull_request_rules:
   - name: Automatic merge on approval
     conditions:
